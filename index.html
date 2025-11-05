@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionary Web App</title>
+    <!-- Load Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for modern aesthetics and fade-in animation */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* Light gray background */
+        }
+
+        .container {
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 1.5rem;
+            background: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            min-height: calc(100vh - 4rem);
+            /* Full height on screen */
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 768px;
+                margin-top: 2rem;
+                margin-bottom: 2rem;
+                min-height: 0;
+            }
+        }
+
+        /* Result fade-in animation */
+        .result-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+
+        .result-content.fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Simple Loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            /* Indigo color */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .loading .loader {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Custom scrollbar for better visual on definitions */
+        .definition-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+
+        .definition-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .definition-scroll::-webkit-scrollbar-thumb {
+            background-color: #a5b4fc;
+            /* Light indigo */
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+    <div class="container">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center">
+            Dictionary App
+        </h1>
+
+        <!-- Search Bar -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-8">
+            <input id="wordInput" type="text" placeholder="Type a word (e.g., 'keyboard', 'serendipity')..."
+                class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150">
+            <button id="searchButton"
+                class="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2">
+                Search
+            </button>
+        </div>
+
+        <!-- Result/Error Area -->
+        <div id="resultArea" class="mt-8">
+            <div id="initialMessage"
+                class="text-center text-gray-500 p-8 border border-dashed border-gray-300 rounded-xl">
+                Start by searching for a word to see its definition, pronunciation, and examples.
+            </div>
+
+            <!-- Loader -->
+            <div id="loader" class="flex justify-center mt-12 loading">
+                <div class="loader"></div>
+            </div>
+
+            <!-- Content Container -->
+            <div id="resultContent" class="result-content hidden p-4">
+                <!-- Word, Phonetics, and Audio -->
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-indigo-200">
+                    <div>
+                        <h2 id="displayWord" class="text-5xl font-bold text-gray-900 leading-tight"></h2>
+                        <div class="mt-1 flex items-center gap-3">
+                            <span id="displayPhonetic" class="text-xl text-indigo-600"></span>
+                            <button id="audioButton"
+                                class="text-indigo-500 hover:text-indigo-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <!-- Icon for Audio -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                                    class="w-6 h-6">
+                                    <path
+                                        d="M13.5 4.06c0-1.336-1.687-2.074-2.775-1.214L5.5 6.095c-1.161.884-1.161 2.502 0 3.386l5.225 3.243c1.088.86 2.775.122 2.775-1.214V4.06Z" />
+                                    <path fill-rule="evenodd"
+                                        d="M18.892 11.23a.75.75 0 0 0 0 1.5c2.193 0 3.982 1.71 3.982 3.829V18a2.25 2.25 0 0 1-2.25 2.25h-5.25a.75.75 0 0 1 0-1.5H20.07a.75.75 0 0 0 .75-.75v-1.44a.75.75 0 0 1 .75-.75h.375a.75.75 0 0 1 0 1.5H21V18c0 .363-.122.709-.344.979-.313.38-.813.435-1.171.165L16.2 18.252a.75.75 0 0 1-.452-.69v-2.06c0-1.025-.503-1.956-1.325-2.529a.75.75 0 0 0-.77.168L11 13.92V10.08l2.655-1.745a.75.75 0 0 0-.77-.168C12.923 8.526 12.375 9.457 12.375 10.482v2.06a.75.75 0 0 0 .452.69l3.525 2.657a.75.75 0 0 1 .159 1.154L19.4 18.252a.75.75 0 0 0 .618-.847v-1.44a2.25 2.25 0 0 0-2.25-2.25h-.375a.75.75 0 0 1 0-1.5H18.892Z"
+                                        clip-rule="evenodd" />
+                                </svg>
+
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meanings Container -->
+                <div id="meaningsContainer" class="space-y-8">
+                    <!-- Meanings will be injected here -->
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorArea"
+                class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-6 rounded-lg relative mt-8">
+                <strong class="font-bold">Oops!</strong>
+                <span id="errorMessage" class="block sm:inline ml-2"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+
+        // DOM elements
+        const wordInput = document.getElementById('wordInput');
+        const searchButton = document.getElementById('searchButton');
+        const initialMessage = document.getElementById('initialMessage');
+        const loader = document.getElementById('loader');
+        const resultContent = document.getElementById('resultContent');
+        const errorArea = document.getElementById('errorArea');
+        const errorMessage = document.getElementById('errorMessage');
+        const displayWord = document.getElementById('displayWord');
+        const displayPhonetic = document.getElementById('displayPhonetic');
+        const meaningsContainer = document.getElementById('meaningsContainer');
+        const audioButton = document.getElementById('audioButton');
+
+        let currentAudio = null;
+
+        // --- Utility Functions ---
+
+        /**
+         * Clears all previous content and results.
+         */
+        const clearResults = () => {
+            initialMessage.classList.add('hidden');
+            resultContent.classList.remove('fade-in');
+            resultContent.classList.add('hidden');
+            errorArea.classList.add('hidden');
+            loader.classList.remove('loading');
+            meaningsContainer.innerHTML = '';
+            currentAudio = null;
+            audioButton.onclick = null;
+            audioButton.disabled = true;
+        };
+
+        /**
+         * Shows the loader and hides content/errors.
+         */
+        const showLoader = () => {
+            clearResults();
+            loader.classList.add('loading');
+        };
+
+        /**
+         * Hides the loader.
+         */
+        const hideLoader = () => {
+            loader.classList.remove('loading');
+        };
+
+        /**
+         * Plays the pronunciation audio.
+         * @param {string} url The URL of the audio file.
+         */
+        const playAudio = (url) => {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            currentAudio = new Audio(url);
+            currentAudio.play().catch(e => console.error("Audio playback error:", e));
+        };
+
+        // --- Fetching Logic ---
+
+        /**
+         * Fetches and processes the definition for the given word.
+         * @param {string} word The word to search for.
+         */
+        const fetchDefinition = async (word) => {
+            if (!word.trim()) {
+                displayError('Please enter a word to search.');
+                return;
+            }
+
+            showLoader();
+
+            try {
+                const response = await fetch(`${API_URL}${word}`);
+
+                if (!response.ok) {
+                    // Check for specific 404 error from the API
+                    if (response.status === 404) {
+                        const errorData = await response.json();
+                        displayError('Word not found! Try another one.');
+                        return;
+                    }
+                    // Handle other network/server errors
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                // The API returns an array, even for a single word
+                if (data && data.length > 0) {
+                    displayResults(data[0]);
+                } else {
+                    displayError('Word not found! Try another one.');
+                }
+
+            } catch (error) {
+                console.error("Fetch error:", error);
+                displayError('An error occurred while fetching the definition. Please check your connection.');
+            } finally {
+                hideLoader();
+            }
+        };
+
+        // --- Display Logic ---
+
+        /**
+         * Displays a friendly error message.
+         * @param {string} message The error message to display.
+         */
+        const displayError = (message) => {
+            clearResults();
+            errorMessage.textContent = message;
+            errorArea.classList.remove('hidden');
+        };
+
+        /**
+         * Displays the retrieved word data on the page.
+         * @param {Object} data The primary word object from the API response.
+         */
+        const displayResults = (data) => {
+            clearResults();
+
+            displayWord.textContent = data.word || 'Word';
+            displayPhonetic.textContent = data.phonetic || '';
+
+            // 1. Handle Audio
+            const firstAudio = data.phonetics.find(p => p.audio && p.audio.trim());
+            if (firstAudio) {
+                // Ensure audio URL starts with https if it's protocol-relative
+                const audioUrl = firstAudio.audio.startsWith('//') ? 'https:' + firstAudio.audio : firstAudio.audio;
+                audioButton.disabled = false;
+                audioButton.onclick = () => playAudio(audioUrl);
+            }
+
+            // 2. Handle Meanings
+            data.meanings.forEach(meaning => {
+                const meaningSection = document.createElement('div');
+                meaningSection.className = 'mb-6 p-4 border-l-4 border-indigo-400 bg-indigo-50 rounded-lg';
+
+                // Part of Speech Header
+                const partOfSpeechHeader = document.createElement('h3');
+                partOfSpeechHeader.className = 'text-2xl font-semibold text-gray-800 capitalize mb-3';
+                partOfSpeechHeader.textContent = meaning.partOfSpeech;
+                meaningSection.appendChild(partOfSpeechHeader);
+
+                // Definitions List
+                const definitionList = document.createElement('ol');
+                definitionList.className = 'list-decimal ml-5 space-y-3 text-gray-700 definition-scroll';
+
+                meaning.definitions.slice(0, 5).forEach((def, index) => { // Limit to 5 definitions for clean UI
+                    const listItem = document.createElement('li');
+                    listItem.className = 'pb-2 border-b border-indigo-100 last:border-b-0';
+
+                    // Definition Text
+                    const definitionText = document.createElement('p');
+                    definitionText.className = 'font-medium';
+                    definitionText.textContent = def.definition;
+                    listItem.appendChild(definitionText);
+
+                    // Example (if available)
+                    if (def.example) {
+                        const exampleText = document.createElement('p');
+                        exampleText.className = 'text-sm text-gray-500 italic mt-1 pl-2';
+                        exampleText.textContent = `“${def.example}”`;
+                        listItem.appendChild(exampleText);
+                    }
+                    definitionList.appendChild(listItem);
+                });
+
+                meaningSection.appendChild(definitionList);
+                meaningsContainer.appendChild(meaningSection);
+            });
+
+            // Show results and apply fade-in animation
+            resultContent.classList.remove('hidden');
+            // Timeout to allow the element to be rendered before applying the transition
+            setTimeout(() => {
+                resultContent.classList.add('fade-in');
+            }, 50);
+        };
+
+        // --- Event Listeners ---
+
+        // Search button click
+        searchButton.addEventListener('click', () => {
+            fetchDefinition(wordInput.value.toLowerCase());
+        });
+
+        // Enter key press in the input field
+        wordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default form submission behavior
+                fetchDefinition(wordInput.value.toLowerCase());
+            }
+        });
+
+        // Initial setup: hide loader
+        document.addEventListener('DOMContentLoaded', () => {
+            hideLoader();
+        });
+
+    </script>
+</body>
+
+</html>
